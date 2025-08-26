@@ -1,0 +1,9 @@
+node_modules/
+examples/
+lib/
+coverage/
+dist/
+.env
+.vscode/
+.idea/
+**/.DS_Store
