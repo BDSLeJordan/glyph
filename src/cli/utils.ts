@@ -21,12 +21,6 @@ import { readdir, mkdir, writeFile, readFile } from "fs/promises";
 import { extname, basename, resolve } from "path";
 import type { RemoteEmoji, GlyphEntry, GlyphConfig } from "../types";
 
-const ALLOWED_EXTS = new Set([".png", ".gif"]);
-
-export function validateEmojiName(name: string): boolean {
-	return /^[a-z0-9_]{2,32}$/i.test(name);
-}
-
 export async function scanLocalEmojis(cfg: GlyphConfig): Promise<string[]> {
 	const dir = resolve(cfg.emojisDir);
 	const entries = await readdir(dir, { withFileTypes: true }).catch(() => []);
@@ -35,19 +29,14 @@ export async function scanLocalEmojis(cfg: GlyphConfig): Promise<string[]> {
 	for (const e of entries) {
 		if (!e.isFile()) continue;
 		const ext = extname(e.name).toLowerCase();
-		if (!ALLOWED_EXTS.has(ext)) continue;
+		if (ext === ".json" || ext === ".ts") continue;
 		const base = basename(e.name, ext);
-		if (!validateEmojiName(base)) continue;
 		out.add(base);
 	}
 	return [...out].sort((a, b) => a.localeCompare(b));
 }
 
-export type LocalEmojiFile = {
-	name: string;
-	filePath: string;
-	isPngOrApng: boolean;
-};
+export type LocalEmojiFile = { name: string; filePath: string; ext: string };
 
 export async function listLocalEmojiFiles(
 	cfg: GlyphConfig
@@ -59,18 +48,12 @@ export async function listLocalEmojiFiles(
 	for (const e of entries) {
 		if (!e.isFile()) continue;
 		const ext = extname(e.name).toLowerCase();
-		if (!ALLOWED_EXTS.has(ext)) continue;
+		if (ext === ".json" || ext === ".ts") continue;
 		const base = basename(e.name, ext);
-		if (!validateEmojiName(base)) continue;
-		files.push({
-			name: base,
-			filePath: resolve(dir, e.name),
-			isPngOrApng: ext !== ".gif",
-		});
+		files.push({ name: base, filePath: resolve(dir, e.name), ext });
 	}
 
-	files.sort((a, b) => a.name.localeCompare(b.name));
-	return files;
+	return files.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export function diffEmojis(local: string[], remoteNames: string[]) {
@@ -112,8 +95,6 @@ export async function writeIndexFiles(
 	);
 	await writeFile(resolve(dir, "emojis.d.ts"), dts + "\n", "utf8");
 }
-
-export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export async function fileToBase64(path: string): Promise<string> {
 	const buf = await readFile(path);
