@@ -24,7 +24,6 @@ import {
 	listLocalEmojiFiles,
 	diffEmojis,
 	writeIndexFiles,
-	sleep,
 	fileToBase64,
 } from "../utils";
 import {
@@ -33,6 +32,21 @@ import {
 	deleteAppEmoji,
 	uploadAppEmoji,
 } from "../discord";
+
+function guessMime(ext: string): string {
+	switch (ext.toLowerCase()) {
+		case ".gif":
+			return "image/gif";
+		case ".jpg":
+			return "image/jpg";
+		case ".jpeg":
+			return "image/jpeg";
+		case ".apng":
+			return "image/apng";
+		default:
+			return "image/png";
+	}
+}
 
 export function runBuild(app: Command) {
 	app.command("build")
@@ -94,11 +108,10 @@ export function runBuild(app: Command) {
 					const r = remoteByName.get(name);
 					if (!r) continue;
 					try {
-						process.stdout.write(`🗑 DELETE ${name} … `);
+						console.log(`🗑 DELETE ${name} … `);
 						await deleteAppEmoji(cfg.botToken, me.id, r.id);
 						console.log("✅");
 						deleted++;
-						await sleep(250);
 					} catch (err: any) {
 						console.log(`❌ ${err?.message ?? err}`);
 						failed++;
@@ -113,30 +126,13 @@ export function runBuild(app: Command) {
 					const f = filesByName.get(name);
 					if (!f) continue;
 					try {
-						process.stdout.write(`📤 UPLOAD ${name} … `);
+						console.log(`📤 UPLOAD ${name} … `);
 						const b64 = await fileToBase64(f.filePath);
+						const mime = guessMime(f.ext);
 
-						// simple retry on 429/timeouts
-						let attempt = 0,
-							max = 2;
-						for (;;) {
-							try {
-								await uploadAppEmoji(
-									cfg.botToken,
-									me.id,
-									name,
-									b64,
-									f.isPngOrApng
-								);
-								console.log("✅");
-								uploaded++;
-								await sleep(250);
-								break;
-							} catch (e: any) {
-								const msg = String(e?.message ?? e);
-								throw e;
-							}
-						}
+						await uploadAppEmoji(cfg.botToken, me.id, name, b64,mime);
+						console.log("✅");
+						uploaded++;
 					} catch (err: any) {
 						console.log(`❌ ${err?.message ?? err}`);
 						failed++;
