@@ -40,10 +40,6 @@ export class Glyph {
 		return this.byName.get(name)?.identifier;
 	}
 
-	public list(): GlyphEntry[] {
-		return [...this.byName.values()];
-	}
-
 	public size(): number {
 		return this.byName.size;
 	}
