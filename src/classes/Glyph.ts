@@ -1,68 +1,50 @@
-import { readFile } from "fs/promises";
+import { readFileSync } from "fs";
 import { resolve } from "path";
-import { loadConfig } from "../cli/GlyphConfig";
 import { GlyphEntry } from "../types";
+import type { Emojis, EmojisRecord } from "../../emojis/emojis";
 
+export type GlyphInitOptions = Partial<{ emojisDir: string }>;
 export class Glyph {
-	private static instance: Glyph | null = null;
+	private static instance: Glyph;
 	private byName = new Map<string, GlyphEntry>();
+	private record: EmojisRecord | null = null;
 
-	private constructor() {}
+	static async init(options: GlyphInitOptions = { emojisDir: "./emojis" }) {
+		if (Glyph.instance) throw new Error("Glyph already Initialized");
 
-	static async init(): Promise<Glyph> {
-		const cfg = await loadConfig();
-		const listPath = resolve(cfg.emojisDir, "list.json");
+		if (!options.emojisDir) options.emojisDir = "./emojis";
 
-		let raw: Buffer;
-		try {
-			raw = await readFile(listPath);
-		} catch {
-			throw new Error(
-				`Glyph.init: missing ${listPath}. Run 'glyph build' first.`
-			);
-		}
-
-		let data: unknown;
-		try {
-			data = JSON.parse(raw.toString("utf8"));
-		} catch {
-			throw new Error("Glyph.init: invalid list.json");
-		}
-
-		if (!Array.isArray(data))
-			throw new Error("Glyph.init: list.json must be an array");
+		const dir = options?.emojisDir;
+		const list = JSON.parse(
+			readFileSync(resolve(dir, "list.json"), "utf-8")
+		) as GlyphEntry[];
 
 		const g = new Glyph();
-		for (const e of data as GlyphEntry[]) {
-			if (!e || typeof e !== "object") continue;
-			if (!("name" in e) || !("id" in e) || !("identifier" in e))
-				continue;
-			g.byName.set((e as GlyphEntry).name, e as GlyphEntry);
-		}
+		for (const e of list) g.byName.set(e.name, e);
+		g.record = Object.fromEntries(g.byName) as EmojisRecord;
 
 		Glyph.instance = g;
-		return g;
 	}
 
-	static get(): Glyph {
-		if (!Glyph.instance)
-			throw new Error("Glyph.get: call Glyph.init() first");
+	public static get(name: Emojis): EmojisRecord[Emojis];
+	public static get(): Glyph;
+	public static get(name?: Emojis): any {
+		if (!Glyph.instance) throw new Error("Glyph not initialized");
+		if (typeof name === "string") {
+			return Glyph.instance.record?.[name];
+		}
 		return Glyph.instance;
 	}
 
-	get(name: string): GlyphEntry | undefined {
-		return this.byName.get(name);
-	}
-
-	identifier(name: string): string | undefined {
+	public identifier(name: Emojis): string | undefined {
 		return this.byName.get(name)?.identifier;
 	}
 
-	list(): GlyphEntry[] {
+	public list(): GlyphEntry[] {
 		return [...this.byName.values()];
 	}
 
-	size(): number {
+	public size(): number {
 		return this.byName.size;
 	}
 }
