@@ -70,11 +70,11 @@ export async function uploadAppEmoji(
 	appId: string,
 	name: string,
 	imageBase64: string, // base64 sans prefix
-	isPngOrApng = true // true => image/png ; false => image/gif
+	mimeType = "image/png"
 ): Promise<RemoteEmoji> {
 	const body = {
 		name,
-		image: `data:${isPngOrApng ? "image/png" : "image/gif"};base64,${imageBase64}`,
+		image: `data:${mimeType};base64,${imageBase64}`,
 	};
 
 	const res = await fetch(
