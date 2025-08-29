@@ -4,6 +4,19 @@
 	"version": "1.0.0",
 	"description": "App emojis manager for Discord Bots",
 	"main": "lib/index.js",
+	"types": "lib/index.d.ts",
+	"exports": {
+		".": {
+			"import": "./lib/index.js",
+			"types": "./lib/index.d.ts"
+		}
+	},
+	"bin": {
+		"glyph": "lib/cli/bin/glyph.js"
+	},
+	"files": [
+		"lib"
+	],
 	"scripts": {
 		"build": "tsc",
 		"dev": "tsc --watch",
