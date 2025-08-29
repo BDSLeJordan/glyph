@@ -1,13 +1,12 @@
 import { readFileSync } from "fs";
 import { resolve } from "path";
 import { GlyphEntry } from "../types";
-import type { Emojis, EmojisRecord } from "../../emojis/emojis";
+import type { Emojis, EmojisRecord } from "glyph/emojis";
 
 export type GlyphInitOptions = Partial<{ emojisDir: string }>;
 export class Glyph {
 	private static instance: Glyph;
 	private byName = new Map<string, GlyphEntry>();
-	private record: EmojisRecord | null = null;
 
 	static async init(options: GlyphInitOptions = { emojisDir: "./emojis" }) {
 		if (Glyph.instance) throw new Error("Glyph already Initialized");
@@ -21,26 +20,29 @@ export class Glyph {
 
 		const g = new Glyph();
 		for (const e of list) g.byName.set(e.name, e);
-		g.record = Object.fromEntries(g.byName) as EmojisRecord;
 
 		Glyph.instance = g;
 	}
 
-	public static get(name: Emojis): EmojisRecord[Emojis];
-	public static get(): Glyph;
-	public static get(name?: Emojis): any {
+	private static ensure(): Glyph {
 		if (!Glyph.instance) throw new Error("Glyph not initialized");
-		if (typeof name === "string") {
-			return Glyph.instance.record?.[name];
-		}
 		return Glyph.instance;
 	}
 
-	public identifier(name: Emojis): string | undefined {
-		return this.byName.get(name)?.identifier;
+	static get(name: Emojis): GlyphEntry | undefined {
+		return Glyph.ensure().byName.get(name);
 	}
 
-	public size(): number {
-		return this.byName.size;
+	static size(): number {
+		return Glyph.ensure().byName.size;
+	}
+	static list(): GlyphEntry[] {
+		return [...Glyph.ensure().byName.values()];
+	}
+	static has(name: Emojis): boolean {
+		return Glyph.ensure().byName.has(name);
+	}
+	static identifier(name: Emojis): string | undefined {
+		return Glyph.ensure().byName.get(name)?.identifier;
 	}
 }
