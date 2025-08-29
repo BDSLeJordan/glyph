@@ -85,9 +85,10 @@ export async function writeIndexFiles(
 		.sort((a, b) => a.name.localeCompare(b.name));
 
 	const dts =
-		`export type Emojis = ${list.length ? list.map((e) => `'${e.name}'`).join(" | ") : "never"};\n` +
-		`export type EmojisRecord = Record<Emojis, { id: string; name: string; identifier: string }>;`;
-
+		`declare module "glyph/emojis" {\n` +
+		`  export type Emojis = ${list.length ? list.map((e) => `'${e.name}'`).join(" | ") : "never"};\n` +
+		`  export type EmojisRecord = Record<Emojis, { id: string; name: string; identifier: string }>;\n` +
+		`}\n`;
 	await writeFile(
 		resolve(dir, "list.json"),
 		JSON.stringify(list, null, 2),
